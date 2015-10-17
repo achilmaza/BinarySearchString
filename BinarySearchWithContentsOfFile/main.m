@@ -1,15 +1,20 @@
-//
+//---------------------------------------------------------------------------
 //  main.m
 //  BinarySearchWithContentsOfFile
+//  Parses contents of txt file, sorts and then does binary search for string
+//  using iteration and recursion
 //
 //  Created by Angie Chilmaza on 10/16/15.
 //  Copyright © 2015 Angie Chilmaza. All rights reserved.
 //
+///---------------------------------------------------------------------------
+
 
 #import <Foundation/Foundation.h>
 
 int binarySearchWithRecursion(NSString* comprString, NSArray* arr, int start, int end, int*iterations);
 int binarySearch(NSString* comprString, NSArray* arr, int*iterations);
+
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
@@ -28,27 +33,45 @@ int main(int argc, const char * argv[]) {
         
             [inFile closeFile];
             
-            NSArray * sortedArray = [contents componentsSeparatedByString:@"\n"];
+            NSArray * lines = [contents componentsSeparatedByString:@"\n"];
             
-            //sort array
-            sortedArray = [sortedArray sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
-            NSLog(@"lines = %@ \n", sortedArray);
+            //Sort array
+            NSArray * sortedArray = [lines sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
             
-            //Performace should be O(log n)
+            //remove duplicates
+            NSOrderedSet *orderedSet = [NSOrderedSet orderedSetWithArray:sortedArray];
+            sortedArray = [orderedSet array];
+            NSLog(@"sorted = %@ \n", sortedArray);
+        
+            
+            //Time complexity -
+            //O(log n) for both
+            //But the recursive version takes twice as long to complete as the iterative
+            //when measuring execution time
             
             int iterations = 0;
+            NSDate *methodStart = [NSDate date];
             int index = binarySearchWithRecursion(@"Whoa! Mr. Trout!\"", sortedArray, 0, (int)[sortedArray count]-1, &iterations);
-            
-            int iterations2 = 0;
-            int index2 = binarySearch(@"Whoa! Mr. Trout!\"", sortedArray, &iterations2);
+            NSDate *methodFinish = [NSDate date];
+            NSTimeInterval executionTime = [methodFinish timeIntervalSinceDate:methodStart];
             
             if(index >=0){
                 NSLog(@"Recursive: Found string = %@ at index = %i iterations=%i\n", sortedArray[index], index, iterations);
                 NSLog(@"total items = %lu \n",[sortedArray count]);
+                NSLog(@"executionTime = %f", executionTime);
             }
             
-            if(index2 >=0){
-                 NSLog(@"Iterative: Found string = %@ at index = %i iterations=%i\n", sortedArray[index2], index2, iterations2);
+            
+            iterations = 0;
+            methodStart = [NSDate date];
+            index = binarySearch(@"Whoa! Mr. Trout!\"", sortedArray, &iterations);
+            methodFinish = [NSDate date];
+            executionTime = [methodFinish timeIntervalSinceDate:methodStart];
+            
+            if(index >=0){
+                 NSLog(@"Iterative: Found string = %@ at index = %i iterations=%i\n", sortedArray[index], index, iterations);
+                 NSLog(@"total items = %lu \n",[sortedArray count]);
+                 NSLog(@"executionTime = %f", executionTime);
             }
             
             
@@ -58,75 +81,65 @@ int main(int argc, const char * argv[]) {
     return 0;
 }
 
-//binary search of a string
 
+//binary search of a string
 int binarySearchWithRecursion(NSString* comprString, NSArray* arr, int start, int end, int*iterations){
     
-    int mid  = (end + start) / 2;
     int found  = -1;
+    int mid    = (end + start) / 2;
     
-    NSLog(@"binarySearch:: search string = %@\n", comprString);
-    NSLog(@"binarySearch:: start = %d\n", start);
-    NSLog(@"binarySearch:: end = %d\n", end);
-    NSLog(@"binarySearch:: index = %d\n", mid);
-    NSLog(@"----------------------------\n");
     
-    //grab string
     NSString * indexedString = arr[mid];
-    (*iterations)++;
+    NSComparisonResult comparisonResult = [indexedString caseInsensitiveCompare:comprString];
     
-    if([indexedString caseInsensitiveCompare:comprString] == NSOrderedSame){
-        fprintf(stderr, " EQUAL \n");
+    if(comparisonResult == NSOrderedSame){
         found = mid;
     }
     //if start == end and match has yet not been found then string is not in the list
-    //NSOrderedAscending
-    //The left operand is smaller than the right operand.
-    else if( ([indexedString caseInsensitiveCompare:comprString] == NSOrderedAscending) && start<=end){
-        fprintf(stderr, " ----> GO RIGHT \n");
+    //NSOrderedAscending - the left operand is smaller than the right operand.
+    //----> GO RIGHT
+    else if(comparisonResult == NSOrderedAscending && start < end){
         found = binarySearchWithRecursion(comprString, arr, mid+1, end, iterations);
     }
-    
-    //NSOrderedDescending
-    //The left operand is greater than the right operand.
-    else if( ([indexedString caseInsensitiveCompare:comprString] == NSOrderedDescending) && start<=end){
-        fprintf(stderr, " <---- GO LEFT \n");
+    //NSOrderedDescending - the left operand is greater than the right operand
+    //<---- GO LEFT
+    else if( comparisonResult == NSOrderedDescending && start < end){
         found = binarySearchWithRecursion(comprString, arr, start, mid-1, iterations);
     }
     
+    
+    (*iterations)++;
     return found;
     
 }
 
 int binarySearch(NSString* comprString, NSArray* arr, int*iterations){
     
-    int mid = -1;
-    int min = 0;
-    int max = (int)[arr count] - 1;
-    
+    int mid   = 0;
+    int start = 0;
+    int end   = (int)[arr count] - 1;
     int found = -1;
     
-    while (min <= max) {
+    
+    while (start <= end) {
         
-        mid = (min + max)/2;
+        mid = (start + end)/2;
     
         NSString * indexedString = arr[mid];
+        NSComparisonResult comparisonResult = [indexedString caseInsensitiveCompare:comprString];
         
-        if([indexedString caseInsensitiveCompare:comprString] == NSOrderedSame){
+        if(comparisonResult == NSOrderedSame){
             found = mid;
             break;
         }
         //if start == end and match has yet not been found then string is not in the list
-        //NSOrderedAscending
-        //The left operand is smaller than the right operand.
-        else if( ([indexedString caseInsensitiveCompare:comprString] == NSOrderedAscending)){
-            min = mid + 1;
+        //NSOrderedAscending - the left operand is smaller than the right operand.
+        else if(comparisonResult == NSOrderedAscending ){
+            start = mid + 1;
         }
-        
-        //NSOrderedDescending
-        //The left operand is greater than the right operand.
-        else if( ([indexedString caseInsensitiveCompare:comprString] == NSOrderedDescending)){
-           max = mid - 1;
+        //NSOrderedDescending - the left operand is greater than the right operand.
+        else if( comparisonResult == NSOrderedDescending ){
+           end = mid - 1;
         }
         (*iterations)++;
         
